@@ -6,14 +6,8 @@
 <title>OVO FX 🔥 ALL ACCOUNTS LIVE</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#050a1a">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="icon.png">
-<link rel="icon" href="icon.png">
 <style>
 body{background:#050a1a;color:white;font-family:Arial;padding:20px;margin:0}
-h1{font-size:28px;line-height:1.2}
 .card{background:#0d1530;border-radius:16px;padding:16px;margin-top:16px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .small{color:#b0b8d0;font-size:14px}
@@ -21,39 +15,32 @@ h1{font-size:28px;line-height:1.2}
 input{width:100%;padding:12px;border-radius:10px;border:1px solid #2a3560;background:#050a1a;color:white;box-sizing:border-box}
 button{width:100%;padding:13px;border:0;border-radius:10px;background:#ff6b00;color:white;font-weight:bold;font-size:16px;margin-top:10px}
 .acct{background:#131d42;border-radius:12px;padding:12px;margin-top:10px}
-.green{color:#00ff88}
-.red{color:#ff4444}
+.green{color:#00ff88}.red{color:#ff4444}
 </style>
 </head>
 <body>
-
 <h1>OVO FX 🔥 ALL ACCOUNTS<br>LIVE</h1>
-<p id="status">Connecting to all accounts...</p>
-
+<p id="status">Paste Token to connect...</p>
 <div class="card" id="tokenBox">
-  <div class="small">Paste your MetaAPI Token (only once, e go save for your phone)</div>
-  <input id="tokenInput" placeholder="Paste Token here..." />
-  <button onclick="saveToken()">CONNECT LIVE</button>
-  <p class="small">Token dey save only for your phone browser, no for GitHub.</p>
+<div class="small">Paste your NEW MetaAPI Token (only once)</div>
+<input id="tokenInput" placeholder="Paste Token here..." />
+<button onclick="saveToken()">CONNECT LIVE</button>
+<p class="small">Token dey save only for your phone, no for GitHub.</p>
+<button onclick="clearToken()" style="background:#333;margin-top:6px">CLEAR SAVED TOKEN</button>
 </div>
-
 <div class="card">
-  <b>TOTAL FOR ALL ACCOUNTS</b>
-  <div class="grid" style="margin-top:12px">
-    <div><div class="small">Total Balance</div><div class="big" id="tBal">...</div></div>
-    <div><div class="small">Total Equity</div><div class="big green" id="tEq">...</div></div>
-    <div><div class="small">Total Profit</div><div class="big" id="tProf">...</div></div>
-    <div><div class="small">Total Gain</div><div class="big" id="tGain">...</div></div>
-  </div>
+<b>TOTAL FOR ALL ACCOUNTS</b>
+<div class="grid" style="margin-top:12px">
+<div><div class="small">Total Balance</div><div class="big" id="tBal">...</div></div>
+<div><div class="small">Total Equity</div><div class="big green" id="tEq">...</div></div>
+<div><div class="small">Total Profit</div><div class="big" id="tProf">...</div></div>
+<div><div class="small">Total Gain</div><div class="big" id="tGain">...</div></div>
 </div>
-
+</div>
 <div id="accounts"></div>
-
-<script src="https://unpkg.com/metaapi.cloud-sdk@latest/dist/metaapi.cloud-sdk.min.js"></script>
 <script>
 let token = localStorage.getItem('ovo_token') || '';
 if(token){ document.getElementById('tokenInput').value = token; document.getElementById('tokenBox').style.display='none'; connect(); }
-
 function saveToken(){
   token = document.getElementById('tokenInput').value.trim();
   if(!token) return alert('Paste Token first');
@@ -61,42 +48,43 @@ function saveToken(){
   document.getElementById('tokenBox').style.display='none';
   connect();
 }
-
+function clearToken(){ localStorage.removeItem('ovo_token'); location.reload(); }
 async function connect(){
   try{
-    document.getElementById('status').innerText = 'Connecting to all accounts...';
-    const api = new MetaApi(token);
-    const prov = api.metatraderAccountApi;
-    const accounts = await prov.getAccounts();
-    if(!accounts.length){ document.getElementById('status').innerText='No account found for this Token'; return; }
-    let totalBal=0, totalEq=0, totalProf=0;
-    let html='';
+    document.getElementById('status').innerText = 'Connecting...';
+    const headers = { 'Authorization': 'Bearer '+token, 'Content-Type':'application/json' };
+    const res = await fetch('https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts', { headers });
+    if(!res.ok) throw new Error('Token invalid or expired - Status '+res.status);
+    const accounts = await res.json();
+    if(!accounts.length){ document.getElementById('status').innerText='No account found for this Token'; document.getElementById('tokenBox').style.display='block'; return; }
+    let totalBal=0, totalEq=0, totalProf=0, html='';
     for(let acc of accounts){
       try{
-        const conn = api.metatraderAccountApi.getAccount(acc.id);
-        await conn.deploy(); await conn.waitConnected();
-        const info = await conn.getAccountInformation();
-        const positions = await conn.getPositions();
-        let profit = positions.reduce((s,p)=>s+(p.profit||0),0);
-        totalBal+=info.balance; totalEq+=info.equity; totalProf+=profit;
-        html += `<div class="acct"><b>${acc.name||acc.login} - ${acc.server||''}</b><br><span class="small">Login: ${acc.login}</span><br>Balance: $${info.balance.toFixed(2)} | Equity: $${info.equity.toFixed(2)}<br>Profit: <span class="${profit>=0?'green':'red'}">$${profit.toFixed(2)}</span> | Open Trades: ${positions.length}</div>`;
-      }catch(e){ html += `<div class="acct"><b>${acc.login}</b><br><span class="red">Failed: ${e.message||e}</span></div>`; }
+        const r = await fetch(`https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/${acc._id}/account-information`, { headers });
+        const info = await r.json();
+        // try positions
+        let profit = 0, posCount = 0;
+        try{
+          const rp = await fetch(`https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/${acc._id}/positions`, { headers });
+          const pos = await rp.json();
+          if(Array.isArray(pos)){ posCount = pos.length; profit = pos.reduce((s,p)=>s+(p.profit||0),0); }
+        }catch(e){}
+        totalBal += info.balance||0; totalEq += info.equity||0; totalProf += profit;
+        html += `<div class="acct"><b>${acc.name||acc.login} - ${acc.server||''}</b><br><span class="small">Login: ${acc.login}</span><br>Balance: $${(info.balance||0).toFixed(2)} | Equity: $${(info.equity||0).toFixed(2)}<br>Profit: <span class="${profit>=0?'green':'red'}">$${profit.toFixed(2)}</span> | Open: ${posCount}</div>`;
+      }catch(e){ html += `<div class="acct"><b>${acc.login}</b><br><span class="red">${e.message}</span></div>`; }
     }
-    document.getElementById('tBal').innerText = '$'+totalBal.toFixed(2);
-    document.getElementById('tEq').innerText = '$'+totalEq.toFixed(2);
-    document.getElementById('tProf').innerText = '$'+totalProf.toFixed(2);
-    let gain = totalBal>0 ? ((totalEq-totalBal)/totalBal*100) : 0;
-    document.getElementById('tGain').innerText = gain.toFixed(2)+'%';
-    document.getElementById('accounts').innerHTML = html;
-    document.getElementById('status').innerText = 'Live ✅ Connected - '+accounts.length+' account(s)';
+    document.getElementById('tBal').innerText='$'+totalBal.toFixed(2);
+    document.getElementById('tEq').innerText='$'+totalEq.toFixed(2);
+    document.getElementById('tProf').innerText='$'+totalProf.toFixed(2);
+    document.getElementById('tGain').innerText = totalBal>0 ? (((totalEq-totalBal)/totalBal*100).toFixed(2)+'%') : '0%';
+    document.getElementById('accounts').innerHTML=html;
+    document.getElementById('status').innerText='Live ✅ Connected - '+accounts.length+' account(s)';
     setTimeout(connect, 30000);
   }catch(e){
-    document.getElementById('status').innerText = 'Error: '+ (e.message||e) + ' - Check Token';
+    document.getElementById('status').innerText='Error: '+(e.message||e);
     document.getElementById('tokenBox').style.display='block';
   }
 }
-
-// PWA Service Worker
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 </script>
 </body>
