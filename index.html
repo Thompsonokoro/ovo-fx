@@ -1,84 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0a0f1e">
-<link rel="manifest" href="/manifest.json">
-<title>Ovo FX - All Accounts Live</title>
+<title>OVO FX 🔥 ALL ACCOUNTS LIVE</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#050a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
 <style>
-body{background:#0a0f1e;color:white;font-family:Arial;padding:16px}
-.card{background:#141c33;padding:16px;border-radius:14px;margin-bottom:12px}
-.green{color:#00ff88}.red{color:#ff4444}
-.big{font-size:28px;font-weight:bold}
+body{background:#050a1a;color:white;font-family:Arial;padding:20px;margin:0}
+h1{font-size:28px;line-height:1.2}
+.card{background:#0d1530;border-radius:16px;padding:16px;margin-top:16px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.acc{border-left:4px solid #00ff88}
-#installBtn{background:#00ff88;border:0;padding:14px;width:100%;border-radius:10px;font-weight:bold;font-size:16px;display:none}
-#lock{max-width:400px;margin:60px auto;text-align:center;background:#141c33;padding:24px;border-radius:16px}
-input{width:100%;padding:14px;border-radius:10px;border:0;margin:12px 0;font-size:18px;text-align:center}
-button{padding:14px;width:100%;border-radius:10px;border:0;font-weight:bold;font-size:16px;background:#00ff88}
-#app{display:none}
+.small{color:#b0b8d0;font-size:14px}
+.big{font-size:18px;font-weight:bold;margin-top:4px}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid #2a3560;background:#050a1a;color:white;box-sizing:border-box}
+button{width:100%;padding:13px;border:0;border-radius:10px;background:#ff6b00;color:white;font-weight:bold;font-size:16px;margin-top:10px}
+.acct{background:#131d42;border-radius:12px;padding:12px;margin-top:10px}
+.green{color:#00ff88}
+.red{color:#ff4444}
 </style>
 </head>
 <body>
-<div id="lock">
-<h1>OVO FX 🔒</h1>
-<p>Enter Password To View Accounts</p>
-<input type="password" id="pwd" placeholder="Password">
-<button onclick="unlock()">UNLOCK</button>
-<p id="err" style="color:#ff4444"></p>
+
+<h1>OVO FX 🔥 ALL ACCOUNTS<br>LIVE</h1>
+<p id="status">Connecting to all accounts...</p>
+
+<div class="card" id="tokenBox">
+  <div class="small">Paste your MetaAPI Token (only once, e go save for your phone)</div>
+  <input id="tokenInput" placeholder="Paste Token here..." />
+  <button onclick="saveToken()">CONNECT LIVE</button>
+  <p class="small">Token dey save only for your phone browser, no for GitHub.</p>
 </div>
 
-<div id="app">
-<h1>OVO FX 🔥 ALL ACCOUNTS LIVE</h1>
-<button id="installBtn">📲 DOWNLOAD APP TO YOUR PHONE</button>
-<p id="updated">Connecting to all accounts...</p>
-<div class="card"><b>TOTAL FOR ALL ACCOUNTS</b><div class="grid" style="margin-top:10px">
-<div>Total Balance<div class="big" id="totalBalance">...</div></div>
-<div>Total Equity<div class="big green" id="totalEquity">...</div></div>
-<div>Total Profit<div class="big" id="totalProfit">...</div></div>
-<div>Total Gain<div class="big" id="totalGain">...</div></div>
-</div></div>
+<div class="card">
+  <b>TOTAL FOR ALL ACCOUNTS</b>
+  <div class="grid" style="margin-top:12px">
+    <div><div class="small">Total Balance</div><div class="big" id="tBal">...</div></div>
+    <div><div class="small">Total Equity</div><div class="big green" id="tEq">...</div></div>
+    <div><div class="small">Total Profit</div><div class="big" id="tProf">...</div></div>
+    <div><div class="small">Total Gain</div><div class="big" id="tGain">...</div></div>
+  </div>
+</div>
+
 <div id="accounts"></div>
-</div>
 
+<script src="https://unpkg.com/metaapi.cloud-sdk@latest/dist/metaapi.cloud-sdk.min.js"></script>
 <script>
-const MY_PASSWORD = "OVO2026";
-function unlock(){
-if(document.getElementById('pwd').value === MY_PASSWORD){
-document.getElementById('lock').style.display='none';
-document.getElementById('app').style.display='block';
-localStorage.setItem('ovo_unlocked','yes');
-loadReal();
-} else {
-document.getElementById('err').innerText = 'Wrong password, try again';
+let token = localStorage.getItem('ovo_token') || '';
+if(token){ document.getElementById('tokenInput').value = token; document.getElementById('tokenBox').style.display='none'; connect(); }
+
+function saveToken(){
+  token = document.getElementById('tokenInput').value.trim();
+  if(!token) return alert('Paste Token first');
+  localStorage.setItem('ovo_token', token);
+  document.getElementById('tokenBox').style.display='none';
+  connect();
 }
+
+async function connect(){
+  try{
+    document.getElementById('status').innerText = 'Connecting to all accounts...';
+    const api = new MetaApi(token);
+    const prov = api.metatraderAccountApi;
+    const accounts = await prov.getAccounts();
+    if(!accounts.length){ document.getElementById('status').innerText='No account found for this Token'; return; }
+    let totalBal=0, totalEq=0, totalProf=0;
+    let html='';
+    for(let acc of accounts){
+      try{
+        const conn = api.metatraderAccountApi.getAccount(acc.id);
+        await conn.deploy(); await conn.waitConnected();
+        const info = await conn.getAccountInformation();
+        const positions = await conn.getPositions();
+        let profit = positions.reduce((s,p)=>s+(p.profit||0),0);
+        totalBal+=info.balance; totalEq+=info.equity; totalProf+=profit;
+        html += `<div class="acct"><b>${acc.name||acc.login} - ${acc.server||''}</b><br><span class="small">Login: ${acc.login}</span><br>Balance: $${info.balance.toFixed(2)} | Equity: $${info.equity.toFixed(2)}<br>Profit: <span class="${profit>=0?'green':'red'}">$${profit.toFixed(2)}</span> | Open Trades: ${positions.length}</div>`;
+      }catch(e){ html += `<div class="acct"><b>${acc.login}</b><br><span class="red">Failed: ${e.message||e}</span></div>`; }
+    }
+    document.getElementById('tBal').innerText = '$'+totalBal.toFixed(2);
+    document.getElementById('tEq').innerText = '$'+totalEq.toFixed(2);
+    document.getElementById('tProf').innerText = '$'+totalProf.toFixed(2);
+    let gain = totalBal>0 ? ((totalEq-totalBal)/totalBal*100) : 0;
+    document.getElementById('tGain').innerText = gain.toFixed(2)+'%';
+    document.getElementById('accounts').innerHTML = html;
+    document.getElementById('status').innerText = 'Live ✅ Connected - '+accounts.length+' account(s)';
+    setTimeout(connect, 30000);
+  }catch(e){
+    document.getElementById('status').innerText = 'Error: '+ (e.message||e) + ' - Check Token';
+    document.getElementById('tokenBox').style.display='block';
+  }
 }
-if(localStorage.getItem('ovo_unlocked')==='yes'){
-document.getElementById('lock').style.display='none';
-document.getElementById('app').style.display='block';
-loadReal();
-}
-async function loadReal(){
-  const r = await fetch('https://ovo-fx-production.up.railway.app/api/live')
-  const d = await r.json();
-  document.getElementById('totalBalance').innerText = '$'+d.total.balance.toFixed(2);
-  document.getElementById('totalEquity').innerText = '$'+d.total.equity.toFixed(2);
-  let pEl = document.getElementById('totalProfit');
-  pEl.innerText = '$'+d.total.profit.toFixed(2);
-  pEl.style.color = d.total.profit >= 0 ? '#00ff88' : '#ff4444';
-  document.getElementById('totalGain').innerText = d.total.gain.toFixed(2)+'%';
-  document.getElementById('updated').innerText = 'Last updated: '+d.lastUpdate+' - '+d.accounts.length+' ACCOUNTS - REAL';
-  let html = '';
-  d.accounts.forEach(a=>{
-    html += `<div class="card acc"><b>${a.name}</b> - ${a.broker} (${a.currency})<div class="grid" style="margin-top:10px"><div>Balance<div class="big">$${a.balance.toFixed(2)}</div></div><div>Equity<div class="big green">$${a.equity.toFixed(2)}</div></div><div>Profit<div class="big" style="color:${a.profit>=0?'#00ff88':'#ff4444'}">$${a.profit.toFixed(2)}</div></div><div>Gain<div class="big">${a.gain.toFixed(2)}%</div></div></div><div>Drawdown: ${a.drawdown.toFixed(2)}% | Deposit: $${a.deposit.toFixed(2)}</div></div>`;
-  });
-  document.getElementById('accounts').innerHTML = html;
-}
-setInterval(()=>{ if(document.getElementById('app').style.display==='block') loadReal(); }, 60000);
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e)=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBtn').style.display='block';});
-document.getElementById('installBtn').addEventListener('click', async ()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;document.getElementById('installBtn').style.display='none';}});
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js');}
+
+// PWA Service Worker
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 </script>
 </body>
 </html>
