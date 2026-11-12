@@ -1,20 +1,18 @@
 {
-  "name": "Ovo FX",
-  "short_name": "Ovo FX",
-  "start_url": ".",
+  "name": "OVO FX",
+  "short_name": "OVO FX",
+  "description": "OVO FX All Accounts Live",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#050a1a",
+  "theme_color": "#050a1a",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icon-512.png",
+      "src": "icon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
