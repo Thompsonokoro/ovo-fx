@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OVO FX 🔥 ALL ACCOUNTS LIVE</title>
-<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#050a1a">
 <style>
 body{background:#050a1a;color:white;font-family:Arial;padding:20px;margin:0}
@@ -49,23 +48,22 @@ function saveToken(){
   connect();
 }
 function clearToken(){ localStorage.removeItem('ovo_token'); location.reload(); }
-function apiUrl(url){ return 'https://corsproxy.io/?url=' + encodeURIComponent(url); }
 async function connect(){
   try{
     document.getElementById('status').innerText = 'Connecting...';
     const headers = { 'auth-token': token };
-    const res = await fetch(apiUrl('https://mt-provisioning-api-v1.agiliumtrade.ai/users/current/accounts'), { headers });
+    const res = await fetch('https://mt-provisioning-api-v1.agiliumtrade.ai/users/current/accounts', { headers });
     if(!res.ok) throw new Error('Token invalid - Status '+res.status);
     const accounts = await res.json();
     if(!accounts.length){ document.getElementById('status').innerText='No account found'; document.getElementById('tokenBox').style.display='block'; return; }
     let totalBal=0, totalEq=0, totalProf=0, html='';
     for(let acc of accounts){
       try{
-        const r = await fetch(apiUrl(`https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts/${acc._id}/account-information`), { headers });
+        const r = await fetch(`https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts/${acc._id}/account-information`, { headers });
         const info = await r.json();
         let profit=0, posCount=0;
         try{
-          const rp = await fetch(apiUrl(`https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts/${acc._id}/positions`), { headers });
+          const rp = await fetch(`https://mt-client-api-v1.agiliumtrade.ai/users/current/accounts/${acc._id}/positions`, { headers });
           const pos = await rp.json();
           if(Array.isArray(pos)){ posCount=pos.length; profit=pos.reduce((s,p)=>s+(p.profit||0),0); }
         }catch(e){}
@@ -85,7 +83,8 @@ async function connect(){
     document.getElementById('tokenBox').style.display='block';
   }
 }
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+// Remove old service worker cache
+if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())); }
 </script>
 </body>
 </html>
