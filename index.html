@@ -59,7 +59,7 @@ document.getElementById('app').style.display='block';
 loadReal();
 }
 async function loadReal(){
-  const r = await fetch('/api/live');
+  const r = await fetch('https://ovo-fx-production.up.railway.app/api/live')
   const d = await r.json();
   document.getElementById('totalBalance').innerText = '$'+d.total.balance.toFixed(2);
   document.getElementById('totalEquity').innerText = '$'+d.total.equity.toFixed(2);
